@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import '../assets/css/lotto.css';
 
 const LottoNumbers = () => {
@@ -36,15 +36,20 @@ const Lotto = () => {
     } while (systemNums.includes(n));
     return n;
   });
+
   const [userLottos, setUserLottos] = useState([]);
   const [tryCount, setTryCount] = useState(0);
   const [running, setrunning] = useState(false);
+
+  const attemptRef = useRef(null);
+  const runningRef = useRef(false);
 
   const person = () => {
     const newLottos = Array.from({ length: 5 }, () => LottoNumbers());
     setUserLottos(newLottos);
     setTryCount(0);
     setrunning(false);
+    runningRef.current = false;
   };
 
   const pc = () => {
@@ -59,18 +64,29 @@ const Lotto = () => {
     setUserLottos([]);
     setTryCount(0);
     setrunning(false);
+    runningRef.current = false;
+  };
+
+  const stopAutoDraw = () => {
+    clearTimeout(attemptRef.current);
+    setrunning(false);
+    runningRef.current = false;
+    setTryCount(0);
+    setUserLottos([]);
   };
 
   const autoTopRank = () => {
-    pc(); 
-
+    pc();
     setTryCount(0);
     setUserLottos([]);
     setrunning(true);
+    runningRef.current = true;
 
     let tries = 0;
 
     const attempt = () => {
+      if (!runningRef.current) return;
+
       const newLottos = Array.from({ length: 5 }, () => LottoNumbers());
       const topLottos = newLottos.filter((user) => {
         const rank = getRank(user, systemNums, bonusNum);
@@ -83,10 +99,11 @@ const Lotto = () => {
       if (topLottos.length > 0) {
         setUserLottos(topLottos);
         setrunning(false);
+        runningRef.current = false;
         return;
       }
 
-      setTimeout(attempt, 10);
+      attemptRef.current = setTimeout(attempt, 10);
     };
 
     attempt();
@@ -102,11 +119,10 @@ const Lotto = () => {
         <div className="lotto-number bonus">{bonusNum}</div>
       </div>
 
-      <button onClick={person}>유저 로또 생성</button>
-      <button onClick={pc}>시스템 로또 생성</button>
-      <button onClick={autoTopRank} disabled={running}>
-        1~2등 나올 때까지 추첨🙏🙏🙏🙏🙏
-      </button>
+      <button onClick={person} disabled={running}>유저 로또 생성</button>
+      <button onClick={pc} disabled={running}>시스템 로또 생성</button>
+      <button onClick={autoTopRank} disabled={running}>1~2등 나올 때까지 추첨🙏</button>
+      {running && <button onClick={stopAutoDraw}>추첨 멈춤🛑</button>}
 
       {running && (
         <div className="try-count">
